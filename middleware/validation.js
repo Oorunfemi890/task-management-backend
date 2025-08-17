@@ -119,14 +119,16 @@ const validateTaskUpdate = (req, res, next) => {
   next();
 };
 
-// Validation for creating users
+// Validation for creating users (UPDATED FOR REGISTRATION)
 const validateUser = (req, res, next) => {
-  const { name, email, avatar } = req.body;
+  const { name, email, password } = req.body;
   const errors = [];
 
   // Validate name
   if (!name || name.trim().length === 0) {
     errors.push('Name is required');
+  } else if (name.trim().length < 2) {
+    errors.push('Name must be at least 2 characters');
   } else if (name.length > 100) {
     errors.push('Name must be less than 100 characters');
   }
@@ -143,9 +145,31 @@ const validateUser = (req, res, next) => {
     }
   }
 
-  // Validate avatar (if provided)
-  if (avatar && avatar.length > 10) {
+  // Validate password (REQUIRED for registration)
+  if (!password || password.trim().length === 0) {
+    errors.push('Password is required');
+  } else if (password.length < 8) {
+    errors.push('Password must be at least 8 characters');
+  } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
+    errors.push('Password must contain uppercase, lowercase, and number');
+  }
+
+  // Validate avatar (optional)
+  if (req.body.avatar && req.body.avatar.length > 10) {
     errors.push('Avatar must be less than 10 characters');
+  }
+
+  // Validate role (optional, but if provided should be valid)
+  if (req.body.role) {
+    const validRoles = ['member', 'manager', 'admin'];
+    if (!validRoles.includes(req.body.role)) {
+      errors.push('Role must be one of: member, manager, admin');
+    }
+  }
+
+  // Validate company (optional, but if provided should not be too long)
+  if (req.body.company && req.body.company.length > 255) {
+    errors.push('Company name must be less than 255 characters');
   }
 
   if (errors.length > 0) {
