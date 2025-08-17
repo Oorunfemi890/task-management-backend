@@ -5,6 +5,32 @@ const bcrypt = require("bcrypt");
 
 const userController = {
 
+// Get current user (for /api/auth/me endpoint)
+getCurrentUser: async (req, res) => {
+  try {
+    // For now, we'll get user from token or session
+    // Since you don't have JWT middleware yet, let's implement a simple version
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    // For now, we'll just return the first user (you'll need proper JWT later)
+    // This is a temporary solution
+    const result = await pool.query('SELECT id, name, email, avatar, created_at FROM users LIMIT 1');
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({
+      user: result.rows[0]
+    });
+  } catch (err) {
+    console.error('Error getting current user:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+},
+
   // Login user
   loginUser: async (req, res) => {
     try {

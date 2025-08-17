@@ -5,6 +5,9 @@ const http = require('http');
 const socketIo = require('socket.io');
 require('dotenv').config();
 
+const projectRoutes = require('./routes/projectRoutes');
+const teamRoutes = require('./routes/teamRoutes');
+
 // Import routes
 const taskRoutes = require('./routes/taskRoutes');
 const userRoutes = require('./routes/userRoutes');
@@ -35,6 +38,10 @@ initializeSocket(io);
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+app.use('/api/projects', projectRoutes);
+app.use('/api/team', teamRoutes);
+app.use('/api/auth', userRoutes);
 
 // Make io available to routes
 app.use((req, res, next) => {
