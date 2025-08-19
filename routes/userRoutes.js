@@ -2,28 +2,37 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
+const settingsController = require('../controllers/settingsController');
 const { validateUser, validateUserUpdate, validateLogin } = require('../middleware/validation');
 
 // IMPORTANT: Specific routes must come BEFORE parameterized routes
 // Get current user (for auth/me endpoint) - MUST be before /:id
 router.get('/me', userController.getCurrentUser);
 
-// Login user
+// Authentication routes
 router.post('/login', validateLogin, userController.loginUser);
-
-// Create new user (register)
 router.post('/register', validateUser, userController.createUser);
+router.post('/forgot-password', userController.forgotPassword);
+router.post('/reset-password', userController.resetPassword);
 
-// Get all users
+// Profile routes
+router.put('/profile', userController.updateProfile);
+router.put('/change-password', userController.changePassword);
+
+// Settings routes
+router.get('/settings', settingsController.getUserSettings);
+router.put('/settings', settingsController.updateUserSettings);
+router.put('/settings/notifications', settingsController.updateNotificationSettings);
+router.put('/settings/appearance', settingsController.updateAppearanceSettings);
+router.put('/settings/privacy', settingsController.updatePrivacySettings);
+router.get('/settings/export', settingsController.exportUserData);
+router.delete('/settings/delete-account', settingsController.deleteUserAccount);
+router.delete('/settings/delete-all-data', settingsController.deleteAllUserData);
+
+// User management routes
 router.get('/', userController.getAllUsers);
-
-// Get user by ID (MUST be after /me route)
 router.get('/:id', userController.getUserById);
-
-// Update user
 router.put('/:id', validateUserUpdate, userController.updateUser);
-
-// Delete user
 router.delete('/:id', userController.deleteUser);
 
 module.exports = router;

@@ -11,6 +11,8 @@ const teamRoutes = require('./routes/teamRoutes');
 // Import routes
 const taskRoutes = require('./routes/taskRoutes');
 const userRoutes = require('./routes/userRoutes');
+const settingsRoutes = require('./routes/settingsRoutes')
+
 
 // Import middleware
 const errorHandler = require('./middleware/errorHandler');
@@ -52,6 +54,10 @@ app.use((req, res, next) => {
 // Routes
 app.use('/api/tasks', taskRoutes);
 app.use('/api/users', userRoutes);
+
+// Or add settings as separate route
+app.use('/api/settings', require('./routes/settingsRoutes'));
+
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
