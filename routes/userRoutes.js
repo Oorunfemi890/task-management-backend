@@ -3,36 +3,40 @@ const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
 const settingsController = require('../controllers/settingsController');
+const { authenticate, authorize, refreshToken } = require('../middleware/auth');
 const { validateUser, validateUserUpdate, validateLogin } = require('../middleware/validation');
 
-// IMPORTANT: Specific routes must come BEFORE parameterized routes
-// Get current user (for auth/me endpoint) - MUST be before /:id
-router.get('/me', userController.getCurrentUser);
-
+// PUBLIC ROUTES (No authentication required)
 // Authentication routes
 router.post('/login', validateLogin, userController.loginUser);
-router.post('/register', validateUser, userController.createUser);
+router.post('/register', validateUser, userController.registerUser);
 router.post('/forgot-password', userController.forgotPassword);
 router.post('/reset-password', userController.resetPassword);
 
-// Profile routes
-router.put('/profile', userController.updateProfile);
-router.put('/change-password', userController.changePassword);
+// Token refresh route
+router.post('/refresh-token', refreshToken);
 
-// Settings routes
-router.get('/settings', settingsController.getUserSettings);
-router.put('/settings', settingsController.updateUserSettings);
-router.put('/settings/notifications', settingsController.updateNotificationSettings);
-router.put('/settings/appearance', settingsController.updateAppearanceSettings);
-router.put('/settings/privacy', settingsController.updatePrivacySettings);
-router.get('/settings/export', settingsController.exportUserData);
-router.delete('/settings/delete-account', settingsController.deleteUserAccount);
-router.delete('/settings/delete-all-data', settingsController.deleteAllUserData);
+// PROTECTED ROUTES (Authentication required)
+// Current user routes
+router.get('/me', authenticate, userController.getCurrentUser);
+router.put('/profile', authenticate, userController.updateProfile);
+router.put('/change-password', authenticate, userController.changePassword);
 
-// User management routes
-router.get('/', userController.getAllUsers);
-router.get('/:id', userController.getUserById);
-router.put('/:id', validateUserUpdate, userController.updateUser);
-router.delete('/:id', userController.deleteUser);
+// Settings routes (all protected)
+router.get('/settings', authenticate, settingsController.getUserSettings);
+router.put('/settings', authenticate, settingsController.updateUserSettings);
+router.put('/settings/notifications', authenticate, settingsController.updateNotificationSettings);
+router.put('/settings/appearance', authenticate, settingsController.updateAppearanceSettings);
+router.put('/settings/privacy', authenticate, settingsController.updatePrivacySettings);
+router.get('/settings/export', authenticate, settingsController.exportUserData);
+router.delete('/settings/delete-account', authenticate, settingsController.deleteUserAccount);
+router.delete('/settings/delete-all-data', authenticate, settingsController.deleteAllUserData);
+
+// ADMIN/MANAGER ROUTES (Role-based access)
+// User management routes (admin/manager only)
+router.get('/', authenticate, authorize('admin', 'manager'), userController.getAllUsers);
+router.get('/:id', authenticate, userController.getUserById);
+router.put('/:id', authenticate, authorize('admin'), validateUserUpdate, userController.updateUser);
+router.delete('/:id', authenticate, authorize('admin'), userController.deleteUser);
 
 module.exports = router;
