@@ -44,7 +44,7 @@ const projectController = {
         GROUP BY p.id, u.name
         ORDER BY p.created_at DESC
       `);
-      
+
       res.json(result.rows);
     } catch (err) {
       console.error('Error fetching projects:', err);
@@ -95,11 +95,11 @@ const projectController = {
         WHERE p.id = $1
         GROUP BY p.id, u.name
       `, [id]);
-      
+
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'Project not found' });
       }
-      
+
       res.json(result.rows[0]);
     } catch (err) {
       console.error('Error fetching project:', err);
@@ -110,23 +110,23 @@ const projectController = {
   // Create new project
   createProject: async (req, res) => {
     const client = await pool.connect();
-    
+
     try {
       await client.query('BEGIN');
 
-      const { 
-        name, 
-        description, 
-        status = 'not_started', 
-        priority = 'medium', 
-        startDate, 
-        dueDate, 
-        budget, 
-        client: clientName, 
-        teamMembers = [], 
-        tags = [], 
+      const {
+        name,
+        description,
+        status = 'not_started',
+        priority = 'medium',
+        startDate,
+        dueDate,
+        budget,
+        client: clientName,
+        teamMembers = [],
+        tags = [],
         goals = [],
-        createdBy 
+        createdBy
       } = req.body;
 
       // Insert project
@@ -140,10 +140,10 @@ const projectController = {
 
       // Insert team members
       if (teamMembers && teamMembers.length > 0) {
-        const memberValues = teamMembers.map((memberId, index) => 
+        const memberValues = teamMembers.map((memberId, index) =>
           `($1, $${index + 2}, 'member')`
         ).join(', ');
-        
+
         const memberParams = [newProject.id, ...teamMembers];
         await client.query(`
           INSERT INTO project_members (project_id, user_id, role) 
@@ -153,10 +153,10 @@ const projectController = {
 
       // Insert tags
       if (tags && tags.length > 0) {
-        const tagValues = tags.map((tag, index) => 
+        const tagValues = tags.map((tag, index) =>
           `($1, $${index + 2})`
         ).join(', ');
-        
+
         const tagParams = [newProject.id, ...tags];
         await client.query(`
           INSERT INTO project_tags (project_id, tag) 
@@ -166,10 +166,10 @@ const projectController = {
 
       // Insert goals
       if (goals && goals.length > 0) {
-        const goalValues = goals.map((goal, index) => 
+        const goalValues = goals.map((goal, index) =>
           `($1, $${index + 2}, false)`
         ).join(', ');
-        
+
         const goalParams = [newProject.id, ...goals];
         await client.query(`
           INSERT INTO project_goals (project_id, goal, completed) 
@@ -197,23 +197,23 @@ const projectController = {
   // Update project
   updateProject: async (req, res) => {
     const client = await pool.connect();
-    
+
     try {
       await client.query('BEGIN');
 
       const { id } = req.params;
-      const { 
-        name, 
-        description, 
-        status, 
-        priority, 
-        startDate, 
-        dueDate, 
-        budget, 
-        client: clientName, 
-        teamMembers = [], 
-        tags = [], 
-        goals = [] 
+      const {
+        name,
+        description,
+        status,
+        priority,
+        startDate,
+        dueDate,
+        budget,
+        client: clientName,
+        teamMembers = [],
+        tags = [],
+        goals = []
       } = req.body;
 
       // Update project
@@ -235,10 +235,10 @@ const projectController = {
       // Update team members (remove all and re-add)
       await client.query('DELETE FROM project_members WHERE project_id = $1', [id]);
       if (teamMembers && teamMembers.length > 0) {
-        const memberValues = teamMembers.map((memberId, index) => 
+        const memberValues = teamMembers.map((memberId, index) =>
           `($1, $${index + 2}, 'member')`
         ).join(', ');
-        
+
         const memberParams = [id, ...teamMembers];
         await client.query(`
           INSERT INTO project_members (project_id, user_id, role) 
@@ -249,10 +249,10 @@ const projectController = {
       // Update tags (remove all and re-add)
       await client.query('DELETE FROM project_tags WHERE project_id = $1', [id]);
       if (tags && tags.length > 0) {
-        const tagValues = tags.map((tag, index) => 
+        const tagValues = tags.map((tag, index) =>
           `($1, $${index + 2})`
         ).join(', ');
-        
+
         const tagParams = [id, ...tags];
         await client.query(`
           INSERT INTO project_tags (project_id, tag) 
@@ -263,10 +263,10 @@ const projectController = {
       // Update goals (remove all and re-add)
       await client.query('DELETE FROM project_goals WHERE project_id = $1', [id]);
       if (goals && goals.length > 0) {
-        const goalValues = goals.map((goal, index) => 
+        const goalValues = goals.map((goal, index) =>
           `($1, $${index + 2}, false)`
         ).join(', ');
-        
+
         const goalParams = [id, ...goals];
         await client.query(`
           INSERT INTO project_goals (project_id, goal, completed) 
@@ -295,18 +295,18 @@ const projectController = {
   deleteProject: async (req, res) => {
     try {
       const { id } = req.params;
-      
+
       const result = await pool.query('DELETE FROM projects WHERE id = $1 RETURNING id', [id]);
-      
+
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'Project not found' });
       }
-      
+
       // Emit to all connected clients
       if (req.io) {
         req.io.emit('projectDeleted', parseInt(id));
       }
-      
+
       res.status(204).send();
     } catch (err) {
       console.error('Error deleting project:', err);
@@ -325,7 +325,7 @@ const projectController = {
         WHERE t.project_id = $1 
         ORDER BY t.created_at DESC
       `, [id]);
-      
+
       res.json(result.rows);
     } catch (err) {
       console.error('Error fetching project tasks:', err);
@@ -337,7 +337,7 @@ const projectController = {
   getProjectStats: async (req, res) => {
     try {
       const { id } = req.params;
-      
+
       const statsResult = await pool.query(`
         SELECT 
           COUNT(t.id) as total_tasks,
@@ -358,7 +358,7 @@ const projectController = {
       const stats = {
         ...statsResult.rows[0],
         team_size: parseInt(teamResult.rows[0].team_size),
-        completion_rate: statsResult.rows[0].total_tasks > 0 
+        completion_rate: statsResult.rows[0].total_tasks > 0
           ? Math.round((statsResult.rows[0].completed_tasks / statsResult.rows[0].total_tasks) * 100)
           : 0
       };

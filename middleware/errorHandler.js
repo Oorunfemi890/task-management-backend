@@ -2,7 +2,7 @@
 
 // 404 handler for routes that don't exist
 const notFound = (req, res, next) => {
-  res.status(404).json({ 
+  res.status(404).json({
     error: 'Route not found',
     message: `Cannot ${req.method} ${req.originalUrl}`
   });
@@ -11,7 +11,7 @@ const notFound = (req, res, next) => {
 // Global error handler
 const errorHandler = (err, req, res, next) => {
   console.error('Error Stack:', err.stack);
-  
+
   // Default error
   let error = {
     message: err.message || 'Internal Server Error',

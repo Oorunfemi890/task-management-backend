@@ -8,7 +8,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-t
 const verifySocketAuth = async (socket, next) => {
   try {
     const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.replace('Bearer ', '');
-    
+
     if (!token) {
       return next(new Error('Authentication token required'));
     }
@@ -30,7 +30,7 @@ const verifySocketAuth = async (socket, next) => {
     }
 
     const user = userResult.rows[0];
-    
+
     // Add user info to socket
     socket.user = {
       id: user.id,
@@ -43,15 +43,15 @@ const verifySocketAuth = async (socket, next) => {
     next();
   } catch (error) {
     console.error('Socket authentication error:', error);
-    
+
     if (error.name === 'TokenExpiredError') {
       return next(new Error('Token expired'));
     }
-    
+
     if (error.name === 'JsonWebTokenError') {
       return next(new Error('Invalid token'));
     }
-    
+
     return next(new Error('Authentication failed'));
   }
 };
@@ -62,11 +62,11 @@ const initializeSocket = (io) => {
 
   // Store online users
   const onlineUsers = new Map();
-  
+
   io.on('connection', (socket) => {
     const user = socket.user;
     console.log(`User connected: ${user.name} (${user.id}) - Socket: ${socket.id}`);
-    
+
     // Add user to online users
     onlineUsers.set(user.id, {
       socketId: socket.id,
@@ -74,7 +74,7 @@ const initializeSocket = (io) => {
       connectedAt: new Date(),
       rooms: new Set()
     });
-    
+
     // Notify other users that this user came online
     socket.broadcast.emit('user:online', {
       userId: user.id,
@@ -85,7 +85,7 @@ const initializeSocket = (io) => {
         role: user.role
       }
     });
-    
+
     // Send current online users to the newly connected user
     const onlineUsersList = Array.from(onlineUsers.values()).map(userInfo => ({
       userId: userInfo.user.id,
@@ -96,12 +96,12 @@ const initializeSocket = (io) => {
         role: userInfo.user.role
       }
     }));
-    
+
     socket.emit('users:online_list', onlineUsersList);
-    
+
     // Join user to their personal room
     socket.join(`user:${user.id}`);
-    
+
     // Project room management
     socket.on('project:join', async (projectId) => {
       try {
@@ -111,17 +111,17 @@ const initializeSocket = (io) => {
           LEFT JOIN project_members pm ON p.id = pm.project_id
           WHERE p.id = $1 AND (p.created_by = $2 OR pm.user_id = $2)
         `, [projectId, user.id]);
-        
+
         if (projectAccess.rows.length === 0) {
           socket.emit('error', { message: 'Access denied to project' });
           return;
         }
-        
+
         socket.join(`project:${projectId}`);
         onlineUsers.get(user.id)?.rooms.add(`project:${projectId}`);
-        
+
         console.log(`User ${user.name} joined project room: ${projectId}`);
-        
+
         // Notify other users in the project
         socket.to(`project:${projectId}`).emit('project:user_joined', {
           projectId: parseInt(projectId),
@@ -132,7 +132,7 @@ const initializeSocket = (io) => {
             role: user.role
           }
         });
-        
+
         socket.emit('project:joined', { projectId: parseInt(projectId) });
       } catch (error) {
         console.error('Error joining project room:', error);
@@ -143,9 +143,9 @@ const initializeSocket = (io) => {
     socket.on('project:leave', (projectId) => {
       socket.leave(`project:${projectId}`);
       onlineUsers.get(user.id)?.rooms.delete(`project:${projectId}`);
-      
+
       console.log(`User ${user.name} left project room: ${projectId}`);
-      
+
       // Notify other users in the project
       socket.to(`project:${projectId}`).emit('project:user_left', {
         projectId: parseInt(projectId),
@@ -156,7 +156,7 @@ const initializeSocket = (io) => {
           role: user.role
         }
       });
-      
+
       socket.emit('project:left', { projectId: parseInt(projectId) });
     });
 
@@ -176,17 +176,17 @@ const initializeSocket = (io) => {
             $3 IN ('admin', 'manager')
           )
         `, [taskId, user.id, user.role]);
-        
+
         if (taskAccess.rows.length === 0) {
           socket.emit('error', { message: 'Access denied to task' });
           return;
         }
-        
+
         socket.join(`task:${taskId}`);
         onlineUsers.get(user.id)?.rooms.add(`task:${taskId}`);
-        
+
         console.log(`User ${user.name} joined task room: ${taskId}`);
-        
+
         socket.emit('task:joined', { taskId: parseInt(taskId) });
       } catch (error) {
         console.error('Error joining task room:', error);
@@ -197,7 +197,7 @@ const initializeSocket = (io) => {
     socket.on('task:leave', (taskId) => {
       socket.leave(`task:${taskId}`);
       onlineUsers.get(user.id)?.rooms.delete(`task:${taskId}`);
-      
+
       console.log(`User ${user.name} left task room: ${taskId}`);
       socket.emit('task:left', { taskId: parseInt(taskId) });
     });
@@ -227,26 +227,26 @@ const initializeSocket = (io) => {
     socket.on('task:status_change', async (data) => {
       try {
         const { taskId, status, oldStatus } = data;
-        
+
         // Verify user can edit this task
         const taskResult = await pool.query('SELECT * FROM tasks WHERE id = $1', [taskId]);
         if (taskResult.rows.length === 0) {
           socket.emit('error', { message: 'Task not found' });
           return;
         }
-        
+
         const task = taskResult.rows[0];
-        
+
         // Check permissions (similar to task controller)
-        const canEdit = task.created_by === user.id || 
-                       task.assignee === user.id || 
-                       ['admin', 'manager'].includes(user.role);
-        
+        const canEdit = task.created_by === user.id ||
+          task.assignee === user.id ||
+          ['admin', 'manager'].includes(user.role);
+
         if (!canEdit) {
           socket.emit('error', { message: 'Permission denied' });
           return;
         }
-        
+
         // Broadcast to task room and project room
         const updateData = {
           taskId: parseInt(taskId),
@@ -259,13 +259,13 @@ const initializeSocket = (io) => {
           },
           timestamp: new Date()
         };
-        
+
         socket.to(`task:${taskId}`).emit('task:status_changed', updateData);
-        
+
         if (task.project_id) {
           socket.to(`project:${task.project_id}`).emit('task:status_changed', updateData);
         }
-        
+
         console.log(`Task ${taskId} status changed from ${oldStatus} to ${status} by ${user.name}`);
       } catch (error) {
         console.error('Error handling task status change:', error);
@@ -277,7 +277,7 @@ const initializeSocket = (io) => {
     socket.on('comment:add', async (data) => {
       try {
         const { taskId, content } = data;
-        
+
         // Verify access to task
         const taskAccess = await pool.query(`
           SELECT t.id, t.project_id FROM tasks t
@@ -291,19 +291,19 @@ const initializeSocket = (io) => {
             $3 IN ('admin', 'manager')
           )
         `, [taskId, user.id, user.role]);
-        
+
         if (taskAccess.rows.length === 0) {
           socket.emit('error', { message: 'Access denied to task' });
           return;
         }
-        
+
         // Add comment to database
         const commentResult = await pool.query(`
           INSERT INTO comments (task_id, user_id, content, created_at)
           VALUES ($1, $2, $3, NOW())
           RETURNING *
         `, [taskId, user.id, content]);
-        
+
         const comment = {
           ...commentResult.rows[0],
           user: {
@@ -312,13 +312,13 @@ const initializeSocket = (io) => {
             avatar: user.avatar
           }
         };
-        
+
         // Broadcast to task room
         io.to(`task:${taskId}`).emit('comment:added', {
           taskId: parseInt(taskId),
           comment
         });
-        
+
         // Also broadcast to project room if task belongs to a project
         const projectId = taskAccess.rows[0].project_id;
         if (projectId) {
@@ -327,7 +327,7 @@ const initializeSocket = (io) => {
             comment
           });
         }
-        
+
         console.log(`Comment added to task ${taskId} by ${user.name}`);
       } catch (error) {
         console.error('Error adding comment:', error);
@@ -342,11 +342,11 @@ const initializeSocket = (io) => {
         socket.emit('error', { message: 'Invalid status' });
         return;
       }
-      
+
       const userInfo = onlineUsers.get(user.id);
       if (userInfo) {
         userInfo.status = status;
-        
+
         // Broadcast status change to all connected users
         socket.broadcast.emit('user:status_changed', {
           userId: user.id,
@@ -369,7 +369,7 @@ const initializeSocket = (io) => {
           SET read_at = NOW() 
           WHERE id = $1 AND user_id = $2
         `, [notificationId, user.id]);
-        
+
         socket.emit('notification:marked_read', { notificationId });
       } catch (error) {
         console.error('Error marking notification as read:', error);
@@ -380,10 +380,10 @@ const initializeSocket = (io) => {
     // Handle disconnection
     socket.on('disconnect', (reason) => {
       console.log(`User disconnected: ${user.name} (${user.id}) - Reason: ${reason}`);
-      
+
       // Remove from online users
       onlineUsers.delete(user.id);
-      
+
       // Notify other users
       socket.broadcast.emit('user:offline', {
         userId: user.id,
@@ -433,12 +433,12 @@ const initializeSocket = (io) => {
         notification.message,
         JSON.stringify(notification.data || {})
       ]);
-      
+
       const savedNotification = notificationResult.rows[0];
-      
+
       // Send to user's personal room
       io.to(`user:${userId}`).emit('notification:new', savedNotification);
-      
+
       console.log(`Notification sent to user ${userId}: ${notification.title}`);
     } catch (error) {
       console.error('Error sending notification to user:', error);

@@ -17,24 +17,24 @@ const pool = new Pool({
 
 async function setupDatabase() {
   const client = await pool.connect();
-  
+
   try {
     console.log('Starting database setup...');
-    
+
     // Check if database exists
     const dbCheckResult = await client.query(
       "SELECT 1 FROM pg_database WHERE datname = 'taskmanagement'"
     );
-    
+
     if (dbCheckResult.rows.length === 0) {
       console.log('Creating database: taskmanagement');
       await client.query('CREATE DATABASE taskmanagement');
     } else {
       console.log('Database taskmanagement already exists');
     }
-    
+
     client.release();
-    
+
     // Connect to the taskmanagement database
     const appPool = new Pool({
       user: process.env.DB_USER || 'postgres',
@@ -43,13 +43,13 @@ async function setupDatabase() {
       password: process.env.DB_PASSWORD || 'password',
       port: process.env.DB_PORT || 5432,
     });
-    
+
     const appClient = await appPool.connect();
-    
+
     try {
       // Create tables
       console.log('Creating tables...');
-      
+
       // Users table (updated with password)
       await appClient.query(`
         CREATE TABLE IF NOT EXISTS users (
@@ -66,7 +66,7 @@ async function setupDatabase() {
       await appClient.query(`
         ALTER TABLE users ADD COLUMN IF NOT EXISTS password VARCHAR(255)
       `);
-      
+
       // Projects table (NEW)
       await appClient.query(`
         CREATE TABLE IF NOT EXISTS projects (
@@ -116,7 +116,7 @@ async function setupDatabase() {
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
-      
+
       // Tasks table (updated to include project reference)
       await appClient.query(`
         CREATE TABLE IF NOT EXISTS tasks (
@@ -137,7 +137,7 @@ async function setupDatabase() {
       await appClient.query(`
         ALTER TABLE tasks ADD COLUMN IF NOT EXISTS project_id INTEGER REFERENCES projects(id) ON DELETE SET NULL
       `);
-      
+
       // Comments table
       await appClient.query(`
         CREATE TABLE IF NOT EXISTS comments (
@@ -148,7 +148,7 @@ async function setupDatabase() {
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
-      
+
       // Task activity table
       await appClient.query(`
         CREATE TABLE IF NOT EXISTS task_activity (
@@ -161,9 +161,9 @@ async function setupDatabase() {
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
-      
+
       console.log('Creating indexes...');
-      
+
       // Create indexes
       await appClient.query('CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status)');
       await appClient.query('CREATE INDEX IF NOT EXISTS idx_tasks_assignee ON tasks(assignee)');
@@ -175,13 +175,13 @@ async function setupDatabase() {
       await appClient.query('CREATE INDEX IF NOT EXISTS idx_projects_created_by ON projects(created_by)');
       await appClient.query('CREATE INDEX IF NOT EXISTS idx_project_members_project_id ON project_members(project_id)');
       await appClient.query('CREATE INDEX IF NOT EXISTS idx_project_members_user_id ON project_members(user_id)');
-      
+
       // Check if sample data exists
       const userCount = await appClient.query('SELECT COUNT(*) FROM users');
-      
+
       if (parseInt(userCount.rows[0].count) === 0) {
         console.log('Inserting sample data...');
-        
+
         // Insert sample users with passwords
         await appClient.query(`
           INSERT INTO users (name, email, avatar, password) VALUES 
@@ -244,7 +244,7 @@ async function setupDatabase() {
           (3, 'Setup new cloud infrastructure', false),
           (3, 'Migrate data and test', false)
         `);
-        
+
         // Insert sample tasks (updated with project_id)
         await appClient.query(`
           INSERT INTO tasks (title, description, priority, status, assignee, project_id, due_date) VALUES 
@@ -259,7 +259,7 @@ async function setupDatabase() {
           ('Website Redesign', 'Complete redesign of company website', 'low', 'done', 3, 4, '2024-01-05'),
           ('User Testing', 'Conduct user testing for new design', 'medium', 'done', 4, 4, '2024-01-15')
         `);
-        
+
         // Insert sample comments
         await appClient.query(`
           INSERT INTO comments (task_id, user_id, content) VALUES 
@@ -268,7 +268,7 @@ async function setupDatabase() {
           (4, 3, 'I''ve started working on the product catalog. The basic structure is ready.'),
           (6, 2, 'The API documentation is available in the project wiki.')
         `);
-        
+
         // Insert sample activity
         await appClient.query(`
           INSERT INTO task_activity (task_id, user_id, action, old_value, new_value) VALUES 
@@ -277,14 +277,14 @@ async function setupDatabase() {
           (3, 1, 'created', NULL, 'Implement User Authentication'),
           (4, 3, 'status_changed', 'todo', 'inprogress')
         `);
-        
+
         console.log('Sample data inserted successfully!');
       } else {
         console.log('Sample data already exists, skipping insertion.');
       }
-      
+
       console.log('Database setup completed successfully!');
-      
+
     } catch (error) {
       console.error('Error setting up database:', error);
       throw error;
@@ -292,7 +292,7 @@ async function setupDatabase() {
       appClient.release();
       await appPool.end();
     }
-    
+
   } catch (error) {
     console.error('Error in database setup:', error);
     throw error;
