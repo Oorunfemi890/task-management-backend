@@ -1,25 +1,42 @@
-// controllers/settingsController.js
+// controllers/settingsController.js (FIXED)
 const pool = require('../config/database');
+const jwt = require('jsonwebtoken');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production';
+
+// Helper function to get user ID from JWT token
+const getUserIdFromToken = (authHeader) => {
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    throw new Error('No token provided');
+  }
+
+  const token = authHeader.split(' ')[1];
+  
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET, {
+      issuer: 'taskflow-app',
+      audience: 'taskflow-users'
+    });
+    
+    return decoded.userId;
+  } catch (error) {
+    throw new Error('Invalid or expired token');
+  }
+};
 
 const settingsController = {
   // Get user settings
   getUserSettings: async (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'No token provided' });
-      }
-
-      const token = authHeader.split(' ')[1];
-      const userId = token.includes('dummy-token') ? 1 : 1; // Replace with proper JWT
+      // Use proper JWT authentication instead of dummy token
+      const userId = getUserIdFromToken(req.headers.authorization);
 
       const result = await pool.query(`
         SELECT * FROM user_settings WHERE user_id = $1
       `, [userId]);
 
       if (result.rows.length === 0) {
-        // Create default settings if none exist
+        // Create default settings if none exist FOR THIS SPECIFIC USER
         const defaultSettings = {
           notifications: {
             email: {
@@ -72,6 +89,11 @@ const settingsController = {
       res.json(result.rows[0]);
     } catch (err) {
       console.error('Error fetching user settings:', err);
+      
+      if (err.message === 'No token provided' || err.message === 'Invalid or expired token') {
+        return res.status(401).json({ error: err.message });
+      }
+      
       res.status(500).json({ error: 'Internal server error' });
     }
   },
@@ -79,14 +101,8 @@ const settingsController = {
   // Update user settings
   updateUserSettings: async (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'No token provided' });
-      }
-
-      const token = authHeader.split(' ')[1];
-      const userId = token.includes('dummy-token') ? 1 : 1;
+      // Use proper JWT authentication
+      const userId = getUserIdFromToken(req.headers.authorization);
 
       const { settings } = req.body;
 
@@ -94,7 +110,7 @@ const settingsController = {
         return res.status(400).json({ error: 'Settings data is required' });
       }
 
-      // Update or insert settings
+      // Update or insert settings FOR THIS SPECIFIC USER
       const result = await pool.query(`
         INSERT INTO user_settings (user_id, settings, created_at, updated_at)
         VALUES ($1, $2, NOW(), NOW())
@@ -111,6 +127,11 @@ const settingsController = {
       });
     } catch (err) {
       console.error('Error updating user settings:', err);
+      
+      if (err.message === 'No token provided' || err.message === 'Invalid or expired token') {
+        return res.status(401).json({ error: err.message });
+      }
+      
       res.status(500).json({ error: 'Internal server error' });
     }
   },
@@ -118,18 +139,12 @@ const settingsController = {
   // Update notification settings
   updateNotificationSettings: async (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'No token provided' });
-      }
-
-      const token = authHeader.split(' ')[1];
-      const userId = token.includes('dummy-token') ? 1 : 1;
+      // Use proper JWT authentication
+      const userId = getUserIdFromToken(req.headers.authorization);
 
       const { notifications } = req.body;
 
-      // Get current settings
+      // Get current settings FOR THIS SPECIFIC USER
       const currentResult = await pool.query(`
         SELECT settings FROM user_settings WHERE user_id = $1
       `, [userId]);
@@ -142,7 +157,7 @@ const settingsController = {
       // Update notifications in settings
       currentSettings.notifications = notifications;
 
-      // Save updated settings
+      // Save updated settings FOR THIS SPECIFIC USER
       const result = await pool.query(`
         INSERT INTO user_settings (user_id, settings, created_at, updated_at)
         VALUES ($1, $2, NOW(), NOW())
@@ -159,6 +174,11 @@ const settingsController = {
       });
     } catch (err) {
       console.error('Error updating notification settings:', err);
+      
+      if (err.message === 'No token provided' || err.message === 'Invalid or expired token') {
+        return res.status(401).json({ error: err.message });
+      }
+      
       res.status(500).json({ error: 'Internal server error' });
     }
   },
@@ -166,18 +186,12 @@ const settingsController = {
   // Update appearance settings
   updateAppearanceSettings: async (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'No token provided' });
-      }
-
-      const token = authHeader.split(' ')[1];
-      const userId = token.includes('dummy-token') ? 1 : 1;
+      // Use proper JWT authentication
+      const userId = getUserIdFromToken(req.headers.authorization);
 
       const { preferences } = req.body;
 
-      // Get current settings
+      // Get current settings FOR THIS SPECIFIC USER
       const currentResult = await pool.query(`
         SELECT settings FROM user_settings WHERE user_id = $1
       `, [userId]);
@@ -190,7 +204,7 @@ const settingsController = {
       // Update preferences in settings
       currentSettings.preferences = { ...currentSettings.preferences, ...preferences };
 
-      // Save updated settings
+      // Save updated settings FOR THIS SPECIFIC USER
       const result = await pool.query(`
         INSERT INTO user_settings (user_id, settings, created_at, updated_at)
         VALUES ($1, $2, NOW(), NOW())
@@ -207,6 +221,11 @@ const settingsController = {
       });
     } catch (err) {
       console.error('Error updating appearance settings:', err);
+      
+      if (err.message === 'No token provided' || err.message === 'Invalid or expired token') {
+        return res.status(401).json({ error: err.message });
+      }
+      
       res.status(500).json({ error: 'Internal server error' });
     }
   },
@@ -214,18 +233,12 @@ const settingsController = {
   // Update privacy settings
   updatePrivacySettings: async (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'No token provided' });
-      }
-
-      const token = authHeader.split(' ')[1];
-      const userId = token.includes('dummy-token') ? 1 : 1;
+      // Use proper JWT authentication
+      const userId = getUserIdFromToken(req.headers.authorization);
 
       const { privacy } = req.body;
 
-      // Get current settings
+      // Get current settings FOR THIS SPECIFIC USER
       const currentResult = await pool.query(`
         SELECT settings FROM user_settings WHERE user_id = $1
       `, [userId]);
@@ -238,7 +251,7 @@ const settingsController = {
       // Update privacy in settings
       currentSettings.privacy = { ...currentSettings.privacy, ...privacy };
 
-      // Save updated settings
+      // Save updated settings FOR THIS SPECIFIC USER
       const result = await pool.query(`
         INSERT INTO user_settings (user_id, settings, created_at, updated_at)
         VALUES ($1, $2, NOW(), NOW())
@@ -255,6 +268,11 @@ const settingsController = {
       });
     } catch (err) {
       console.error('Error updating privacy settings:', err);
+      
+      if (err.message === 'No token provided' || err.message === 'Invalid or expired token') {
+        return res.status(401).json({ error: err.message });
+      }
+      
       res.status(500).json({ error: 'Internal server error' });
     }
   },
@@ -262,33 +280,27 @@ const settingsController = {
   // Export user data
   exportUserData: async (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'No token provided' });
-      }
+      // Use proper JWT authentication
+      const userId = getUserIdFromToken(req.headers.authorization);
 
-      const token = authHeader.split(' ')[1];
-      const userId = token.includes('dummy-token') ? 1 : 1;
-
-      // Get user profile
+      // Get user profile FOR THIS SPECIFIC USER
       const userResult = await pool.query(`
         SELECT id, name, email, avatar, phone, company, location, bio, title, 
                timezone, role, created_at
         FROM users WHERE id = $1
       `, [userId]);
 
-      // Get user tasks
+      // Get user tasks FOR THIS SPECIFIC USER
       const tasksResult = await pool.query(`
         SELECT * FROM tasks WHERE assignee = $1
       `, [userId]);
 
-      // Get user settings
+      // Get user settings FOR THIS SPECIFIC USER
       const settingsResult = await pool.query(`
         SELECT settings FROM user_settings WHERE user_id = $1
       `, [userId]);
 
-      // Get user comments
+      // Get user comments FOR THIS SPECIFIC USER
       const commentsResult = await pool.query(`
         SELECT c.*, t.title as task_title
         FROM comments c
@@ -310,6 +322,11 @@ const settingsController = {
       res.json(exportData);
     } catch (err) {
       console.error('Error exporting user data:', err);
+      
+      if (err.message === 'No token provided' || err.message === 'Invalid or expired token') {
+        return res.status(401).json({ error: err.message });
+      }
+      
       res.status(500).json({ error: 'Internal server error' });
     }
   },
@@ -317,14 +334,8 @@ const settingsController = {
   // Delete user account (soft delete)
   deleteUserAccount: async (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'No token provided' });
-      }
-
-      const token = authHeader.split(' ')[1];
-      const userId = token.includes('dummy-token') ? 1 : 1;
+      // Use proper JWT authentication
+      const userId = getUserIdFromToken(req.headers.authorization);
 
       const { confirmPassword } = req.body;
 
@@ -335,7 +346,7 @@ const settingsController = {
         });
       }
 
-      // Verify password
+      // Verify password FOR THIS SPECIFIC USER
       const userResult = await pool.query('SELECT password FROM users WHERE id = $1', [userId]);
       
       if (userResult.rows.length === 0) {
@@ -352,7 +363,7 @@ const settingsController = {
         });
       }
 
-      // Soft delete - mark as deleted instead of actually deleting
+      // Soft delete - mark as deleted FOR THIS SPECIFIC USER
       await pool.query(`
         UPDATE users 
         SET deleted_at = NOW(), 
@@ -364,6 +375,11 @@ const settingsController = {
       res.json({ message: 'Account deleted successfully' });
     } catch (err) {
       console.error('Error deleting user account:', err);
+      
+      if (err.message === 'No token provided' || err.message === 'Invalid or expired token') {
+        return res.status(401).json({ error: err.message });
+      }
+      
       res.status(500).json({ error: 'Internal server error' });
     }
   },
@@ -375,14 +391,8 @@ const settingsController = {
     try {
       await client.query('BEGIN');
 
-      const authHeader = req.headers.authorization;
-      
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'No token provided' });
-      }
-
-      const token = authHeader.split(' ')[1];
-      const userId = token.includes('dummy-token') ? 1 : 1;
+      // Use proper JWT authentication
+      const userId = getUserIdFromToken(req.headers.authorization);
 
       const { confirmPassword } = req.body;
 
@@ -394,7 +404,7 @@ const settingsController = {
         });
       }
 
-      // Verify password
+      // Verify password FOR THIS SPECIFIC USER
       const userResult = await client.query('SELECT password FROM users WHERE id = $1', [userId]);
       
       if (userResult.rows.length === 0) {
@@ -413,7 +423,7 @@ const settingsController = {
         });
       }
 
-      // Delete user data in correct order to avoid foreign key constraints
+      // Delete user data FOR THIS SPECIFIC USER in correct order to avoid foreign key constraints
       await client.query('DELETE FROM comments WHERE user_id = $1', [userId]);
       await client.query('DELETE FROM task_activity WHERE user_id = $1', [userId]);
       await client.query('DELETE FROM project_members WHERE user_id = $1', [userId]);
@@ -428,6 +438,11 @@ const settingsController = {
     } catch (err) {
       await client.query('ROLLBACK');
       console.error('Error deleting all user data:', err);
+      
+      if (err.message === 'No token provided' || err.message === 'Invalid or expired token') {
+        return res.status(401).json({ error: err.message });
+      }
+      
       res.status(500).json({ error: 'Internal server error' });
     } finally {
       client.release();
