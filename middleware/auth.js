@@ -8,7 +8,7 @@ const JWT_EXPIRE = process.env.JWT_EXPIRE || '12h';
 
 // Generate JWT Token
 const generateToken = (payload) => {
-  return jwt.sign(payload, JWT_SECRET, { 
+  return jwt.sign(payload, JWT_SECRET, {
     expiresIn: JWT_EXPIRE,
     issuer: 'taskflow-app',
     audience: 'taskflow-users'
@@ -31,26 +31,26 @@ const verifyToken = (token) => {
 const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         error: 'Access denied',
-        message: 'No token provided. Please log in to access this resource.' 
+        message: 'No token provided. Please log in to access this resource.'
       });
     }
 
     const token = authHeader.split(' ')[1];
-    
+
     if (!token) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         error: 'Access denied',
-        message: 'Invalid token format.' 
+        message: 'Invalid token format.'
       });
     }
 
     try {
       const decoded = verifyToken(token);
-      
+
       // Check if user still exists in database
       const userResult = await pool.query(
         'SELECT id, name, email, avatar, role, deleted_at FROM users WHERE id = $1',
@@ -58,9 +58,9 @@ const authenticate = async (req, res, next) => {
       );
 
       if (userResult.rows.length === 0) {
-        return res.status(401).json({ 
+        return res.status(401).json({
           error: 'User not found',
-          message: 'User account no longer exists.' 
+          message: 'User account no longer exists.'
         });
       }
 
@@ -68,9 +68,9 @@ const authenticate = async (req, res, next) => {
 
       // Check if user account is deleted
       if (user.deleted_at) {
-        return res.status(401).json({ 
+        return res.status(401).json({
           error: 'Account suspended',
-          message: 'User account has been deactivated.' 
+          message: 'User account has been deactivated.'
         });
       }
 
@@ -83,28 +83,28 @@ const authenticate = async (req, res, next) => {
         avatar: user.avatar,
         role: user.role || 'member'
       };
-      
+
       next();
     } catch (jwtError) {
       console.error('JWT verification error:', jwtError);
-      
+
       if (jwtError.name === 'TokenExpiredError') {
-        return res.status(401).json({ 
+        return res.status(401).json({
           error: 'Token expired',
           message: 'Your session has expired. Please log in again.',
           code: 'TOKEN_EXPIRED'
         });
       }
-      
+
       if (jwtError.name === 'JsonWebTokenError') {
-        return res.status(401).json({ 
+        return res.status(401).json({
           error: 'Invalid token',
           message: 'Authentication token is invalid.',
           code: 'INVALID_TOKEN'
         });
       }
-      
-      return res.status(401).json({ 
+
+      return res.status(401).json({
         error: 'Authentication failed',
         message: 'Unable to authenticate user.',
         code: 'AUTH_FAILED'
@@ -112,9 +112,9 @@ const authenticate = async (req, res, next) => {
     }
   } catch (error) {
     console.error('Authentication middleware error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Internal server error',
-      message: 'Authentication service temporarily unavailable.' 
+      message: 'Authentication service temporarily unavailable.'
     });
   }
 };
@@ -123,14 +123,14 @@ const authenticate = async (req, res, next) => {
 const optionalAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       req.user = null;
       return next();
     }
 
     const token = authHeader.split(' ')[1];
-    
+
     if (!token) {
       req.user = null;
       return next();
@@ -138,7 +138,7 @@ const optionalAuth = async (req, res, next) => {
 
     try {
       const decoded = verifyToken(token);
-      
+
       const userResult = await pool.query(
         'SELECT id, name, email, avatar, role, deleted_at FROM users WHERE id = $1',
         [decoded.userId]
@@ -160,7 +160,7 @@ const optionalAuth = async (req, res, next) => {
     } catch (jwtError) {
       req.user = null;
     }
-    
+
     next();
   } catch (error) {
     console.error('Optional auth middleware error:', error);
@@ -173,16 +173,16 @@ const optionalAuth = async (req, res, next) => {
 const authorize = (...roles) => {
   return (req, res, next) => {
     if (!req.user) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         error: 'Authentication required',
-        message: 'Please log in to access this resource.' 
+        message: 'Please log in to access this resource.'
       });
     }
 
     if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ 
+      return res.status(403).json({
         error: 'Access forbidden',
-        message: 'You do not have permission to access this resource.' 
+        message: 'You do not have permission to access this resource.'
       });
     }
 
@@ -194,24 +194,24 @@ const authorize = (...roles) => {
 const refreshToken = async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         error: 'No token provided',
-        message: 'Refresh token is required.' 
+        message: 'Refresh token is required.'
       });
     }
 
     const token = authHeader.split(' ')[1];
-    
+
     try {
       // Verify the current token (even if expired)
-      const decoded = jwt.verify(token, JWT_SECRET, { 
+      const decoded = jwt.verify(token, JWT_SECRET, {
         ignoreExpiration: true,
         issuer: 'taskflow-app',
         audience: 'taskflow-users'
       });
-      
+
       // Check if user still exists
       const userResult = await pool.query(
         'SELECT id, name, email, avatar, role, deleted_at FROM users WHERE id = $1',
@@ -219,18 +219,18 @@ const refreshToken = async (req, res) => {
       );
 
       if (userResult.rows.length === 0) {
-        return res.status(401).json({ 
+        return res.status(401).json({
           error: 'User not found',
-          message: 'User account no longer exists.' 
+          message: 'User account no longer exists.'
         });
       }
 
       const user = userResult.rows[0];
 
       if (user.deleted_at) {
-        return res.status(401).json({ 
+        return res.status(401).json({
           error: 'Account suspended',
-          message: 'User account has been deactivated.' 
+          message: 'User account has been deactivated.'
         });
       }
 
@@ -253,16 +253,16 @@ const refreshToken = async (req, res) => {
         }
       });
     } catch (jwtError) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         error: 'Invalid refresh token',
-        message: 'Unable to refresh token. Please log in again.' 
+        message: 'Unable to refresh token. Please log in again.'
       });
     }
   } catch (error) {
     console.error('Token refresh error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Internal server error',
-      message: 'Token refresh service temporarily unavailable.' 
+      message: 'Token refresh service temporarily unavailable.'
     });
   }
 };

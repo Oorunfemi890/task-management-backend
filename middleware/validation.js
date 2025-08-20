@@ -230,5 +230,5 @@ module.exports = {
   validateTaskUpdate,
   validateUser,
   validateUserUpdate,
-  validateLogin   
+  validateLogin
 };

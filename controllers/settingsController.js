@@ -11,13 +11,13 @@ const getUserIdFromToken = (authHeader) => {
   }
 
   const token = authHeader.split(' ')[1];
-  
+
   try {
     const decoded = jwt.verify(token, JWT_SECRET, {
       issuer: 'taskflow-app',
       audience: 'taskflow-users'
     });
-    
+
     return decoded.userId;
   } catch (error) {
     throw new Error('Invalid or expired token');
@@ -89,11 +89,11 @@ const settingsController = {
       res.json(result.rows[0]);
     } catch (err) {
       console.error('Error fetching user settings:', err);
-      
+
       if (err.message === 'No token provided' || err.message === 'Invalid or expired token') {
         return res.status(401).json({ error: err.message });
       }
-      
+
       res.status(500).json({ error: 'Internal server error' });
     }
   },
@@ -127,11 +127,11 @@ const settingsController = {
       });
     } catch (err) {
       console.error('Error updating user settings:', err);
-      
+
       if (err.message === 'No token provided' || err.message === 'Invalid or expired token') {
         return res.status(401).json({ error: err.message });
       }
-      
+
       res.status(500).json({ error: 'Internal server error' });
     }
   },
@@ -174,11 +174,11 @@ const settingsController = {
       });
     } catch (err) {
       console.error('Error updating notification settings:', err);
-      
+
       if (err.message === 'No token provided' || err.message === 'Invalid or expired token') {
         return res.status(401).json({ error: err.message });
       }
-      
+
       res.status(500).json({ error: 'Internal server error' });
     }
   },
@@ -221,11 +221,11 @@ const settingsController = {
       });
     } catch (err) {
       console.error('Error updating appearance settings:', err);
-      
+
       if (err.message === 'No token provided' || err.message === 'Invalid or expired token') {
         return res.status(401).json({ error: err.message });
       }
-      
+
       res.status(500).json({ error: 'Internal server error' });
     }
   },
@@ -268,11 +268,11 @@ const settingsController = {
       });
     } catch (err) {
       console.error('Error updating privacy settings:', err);
-      
+
       if (err.message === 'No token provided' || err.message === 'Invalid or expired token') {
         return res.status(401).json({ error: err.message });
       }
-      
+
       res.status(500).json({ error: 'Internal server error' });
     }
   },
@@ -322,11 +322,11 @@ const settingsController = {
       res.json(exportData);
     } catch (err) {
       console.error('Error exporting user data:', err);
-      
+
       if (err.message === 'No token provided' || err.message === 'Invalid or expired token') {
         return res.status(401).json({ error: err.message });
       }
-      
+
       res.status(500).json({ error: 'Internal server error' });
     }
   },
@@ -340,7 +340,7 @@ const settingsController = {
       const { confirmPassword } = req.body;
 
       if (!confirmPassword) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: 'Password confirmation required',
           message: 'Please enter your password to confirm account deletion.'
         });
@@ -348,16 +348,16 @@ const settingsController = {
 
       // Verify password FOR THIS SPECIFIC USER
       const userResult = await pool.query('SELECT password FROM users WHERE id = $1', [userId]);
-      
+
       if (userResult.rows.length === 0) {
         return res.status(404).json({ error: 'User not found' });
       }
 
       const bcrypt = require('bcrypt');
       const isPasswordValid = await bcrypt.compare(confirmPassword, userResult.rows[0].password);
-      
+
       if (!isPasswordValid) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: 'Invalid password',
           message: 'Password is incorrect.'
         });
@@ -375,11 +375,11 @@ const settingsController = {
       res.json({ message: 'Account deleted successfully' });
     } catch (err) {
       console.error('Error deleting user account:', err);
-      
+
       if (err.message === 'No token provided' || err.message === 'Invalid or expired token') {
         return res.status(401).json({ error: err.message });
       }
-      
+
       res.status(500).json({ error: 'Internal server error' });
     }
   },
@@ -387,7 +387,7 @@ const settingsController = {
   // Delete all user data (hard delete)
   deleteAllUserData: async (req, res) => {
     const client = await pool.connect();
-    
+
     try {
       await client.query('BEGIN');
 
@@ -398,7 +398,7 @@ const settingsController = {
 
       if (!confirmPassword) {
         await client.query('ROLLBACK');
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: 'Password confirmation required',
           message: 'Please enter your password to confirm data deletion.'
         });
@@ -406,7 +406,7 @@ const settingsController = {
 
       // Verify password FOR THIS SPECIFIC USER
       const userResult = await client.query('SELECT password FROM users WHERE id = $1', [userId]);
-      
+
       if (userResult.rows.length === 0) {
         await client.query('ROLLBACK');
         return res.status(404).json({ error: 'User not found' });
@@ -414,10 +414,10 @@ const settingsController = {
 
       const bcrypt = require('bcrypt');
       const isPasswordValid = await bcrypt.compare(confirmPassword, userResult.rows[0].password);
-      
+
       if (!isPasswordValid) {
         await client.query('ROLLBACK');
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: 'Invalid password',
           message: 'Password is incorrect.'
         });
@@ -438,11 +438,11 @@ const settingsController = {
     } catch (err) {
       await client.query('ROLLBACK');
       console.error('Error deleting all user data:', err);
-      
+
       if (err.message === 'No token provided' || err.message === 'Invalid or expired token') {
         return res.status(401).json({ error: err.message });
       }
-      
+
       res.status(500).json({ error: 'Internal server error' });
     } finally {
       client.release();

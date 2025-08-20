@@ -29,11 +29,11 @@ const userController = {
         FROM users 
         WHERE id = $1 AND deleted_at IS NULL
       `, [userId]);
-      
+
       if (result.rows.length === 0) {
-        return res.status(404).json({ 
+        return res.status(404).json({
           error: 'User not found',
-          message: 'User account no longer exists.' 
+          message: 'User account no longer exists.'
         });
       }
 
@@ -42,9 +42,9 @@ const userController = {
       });
     } catch (err) {
       console.error('Error getting current user:', err);
-      res.status(500).json({ 
+      res.status(500).json({
         error: 'Internal server error',
-        message: 'Unable to fetch user information.' 
+        message: 'Unable to fetch user information.'
       });
     }
   },
@@ -58,14 +58,14 @@ const userController = {
 
       // 1. Check if user exists
       const result = await pool.query(
-        'SELECT * FROM users WHERE email = $1 AND deleted_at IS NULL', 
+        'SELECT * FROM users WHERE email = $1 AND deleted_at IS NULL',
         [email.toLowerCase().trim()]
       );
-      
+
       if (result.rows.length === 0) {
-        return res.status(401).json({ 
+        return res.status(401).json({
           error: 'Invalid credentials',
-          message: 'Invalid email or password.' 
+          message: 'Invalid email or password.'
         });
       }
 
@@ -73,18 +73,18 @@ const userController = {
 
       // 2. Check if password exists
       if (!user.password) {
-        return res.status(401).json({ 
+        return res.status(401).json({
           error: 'Account setup required',
-          message: 'Account needs password setup. Please contact administrator.' 
+          message: 'Account needs password setup. Please contact administrator.'
         });
       }
 
       // 3. Compare password
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
-        return res.status(401).json({ 
+        return res.status(401).json({
           error: 'Invalid credentials',
-          message: 'Invalid email or password.' 
+          message: 'Invalid email or password.'
         });
       }
 
@@ -124,9 +124,9 @@ const userController = {
       });
     } catch (err) {
       console.error('Error logging in user:', err);
-      res.status(500).json({ 
+      res.status(500).json({
         error: 'Internal server error',
-        message: 'Login service temporarily unavailable.' 
+        message: 'Login service temporarily unavailable.'
       });
     }
   },
@@ -135,18 +135,18 @@ const userController = {
   registerUser: async (req, res) => {
     try {
       console.log('Registration request body:', req.body);
-      
+
       const { name, email, password, company, role } = req.body;
 
       // 1. Check if email already exists
       const existingUser = await pool.query(
-        'SELECT id FROM users WHERE email = $1 AND deleted_at IS NULL', 
+        'SELECT id FROM users WHERE email = $1 AND deleted_at IS NULL',
         [email.toLowerCase().trim()]
       );
-      
+
       if (existingUser.rows.length > 0) {
         console.log('Email already exists:', email);
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: 'Email already exists',
           message: 'An account with this email address already exists. Please use a different email or try logging in.'
         });
@@ -196,14 +196,14 @@ const userController = {
     } catch (err) {
       console.error('Error creating user:', err);
       if (err.code === '23505') {
-        res.status(400).json({ 
+        res.status(400).json({
           error: 'Email already exists',
           message: 'An account with this email address already exists. Please use a different email or try logging in.'
         });
       } else {
-        res.status(500).json({ 
+        res.status(500).json({
           error: 'Internal server error',
-          message: 'Registration service temporarily unavailable.' 
+          message: 'Registration service temporarily unavailable.'
         });
       }
     }
@@ -231,9 +231,9 @@ const userController = {
           'SELECT id FROM users WHERE email = $1 AND id != $2 AND deleted_at IS NULL',
           [email.toLowerCase().trim(), userId]
         );
-        
+
         if (emailCheck.rows.length > 0) {
-          return res.status(400).json({ 
+          return res.status(400).json({
             error: 'Email already exists',
             message: 'This email is already being used by another account.'
           });
@@ -255,21 +255,21 @@ const userController = {
         RETURNING id, name, email, avatar, phone, company, location, bio, title, 
                  timezone, role, created_at as "joinedAt"
       `, [
-        name?.trim(), 
-        email?.toLowerCase().trim(), 
-        phone, 
-        company, 
-        location, 
-        bio, 
-        title, 
-        timezone, 
+        name?.trim(),
+        email?.toLowerCase().trim(),
+        phone,
+        company,
+        location,
+        bio,
+        title,
+        timezone,
         userId
       ]);
 
       if (result.rows.length === 0) {
-        return res.status(404).json({ 
+        return res.status(404).json({
           error: 'User not found',
-          message: 'User account no longer exists.' 
+          message: 'User account no longer exists.'
         });
       }
 
@@ -280,14 +280,14 @@ const userController = {
     } catch (err) {
       console.error('Error updating profile:', err);
       if (err.code === '23505') {
-        res.status(400).json({ 
+        res.status(400).json({
           error: 'Email already exists',
-          message: 'This email is already being used by another account.' 
+          message: 'This email is already being used by another account.'
         });
       } else {
-        res.status(500).json({ 
+        res.status(500).json({
           error: 'Internal server error',
-          message: 'Profile update service temporarily unavailable.' 
+          message: 'Profile update service temporarily unavailable.'
         });
       }
     }
@@ -300,21 +300,21 @@ const userController = {
       const { currentPassword, newPassword } = req.body;
 
       if (!currentPassword || !newPassword) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: 'Missing required fields',
           message: 'Current password and new password are required.'
         });
       }
 
       if (newPassword.length < 8) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: 'Invalid password',
           message: 'New password must be at least 8 characters long.'
         });
       }
 
       if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(newPassword)) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: 'Invalid password',
           message: 'Password must contain uppercase, lowercase, and number.'
         });
@@ -322,14 +322,14 @@ const userController = {
 
       // Get current user data
       const userResult = await pool.query(
-        'SELECT password FROM users WHERE id = $1 AND deleted_at IS NULL', 
+        'SELECT password FROM users WHERE id = $1 AND deleted_at IS NULL',
         [userId]
       );
-      
+
       if (userResult.rows.length === 0) {
-        return res.status(404).json({ 
+        return res.status(404).json({
           error: 'User not found',
-          message: 'User account no longer exists.' 
+          message: 'User account no longer exists.'
         });
       }
 
@@ -337,9 +337,9 @@ const userController = {
 
       // Verify current password
       const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
-      
+
       if (!isCurrentPasswordValid) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: 'Invalid password',
           message: 'Current password is incorrect.'
         });
@@ -357,9 +357,9 @@ const userController = {
       res.json({ message: 'Password changed successfully' });
     } catch (err) {
       console.error('Error changing password:', err);
-      res.status(500).json({ 
+      res.status(500).json({
         error: 'Internal server error',
-        message: 'Password change service temporarily unavailable.' 
+        message: 'Password change service temporarily unavailable.'
       });
     }
   },
@@ -370,7 +370,7 @@ const userController = {
       const { email } = req.body;
 
       if (!email) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: 'Email required',
           message: 'Email address is required.'
         });
@@ -378,13 +378,13 @@ const userController = {
 
       // Check if user exists
       const userResult = await pool.query(
-        'SELECT id, name FROM users WHERE email = $1 AND deleted_at IS NULL', 
+        'SELECT id, name FROM users WHERE email = $1 AND deleted_at IS NULL',
         [email.toLowerCase().trim()]
       );
-      
+
       if (userResult.rows.length === 0) {
         // Don't reveal if email exists or not for security
-        return res.json({ 
+        return res.json({
           message: 'If an account with this email exists, a password reset link has been sent.'
         });
       }
@@ -405,7 +405,7 @@ const userController = {
       // Send email (if configured)
       if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
         const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
-        
+
         const mailOptions = {
           from: process.env.EMAIL_FROM || 'noreply@taskflow.com',
           to: email,
@@ -430,14 +430,14 @@ const userController = {
         await transporter.sendMail(mailOptions);
       }
 
-      res.json({ 
+      res.json({
         message: 'If an account with this email exists, a password reset link has been sent.'
       });
     } catch (err) {
       console.error('Error sending password reset email:', err);
-      res.status(500).json({ 
+      res.status(500).json({
         error: 'Internal server error',
-        message: 'Password reset service temporarily unavailable.' 
+        message: 'Password reset service temporarily unavailable.'
       });
     }
   },
@@ -448,21 +448,21 @@ const userController = {
       const { token, newPassword } = req.body;
 
       if (!token || !newPassword) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: 'Missing required fields',
           message: 'Token and new password are required.'
         });
       }
 
       if (newPassword.length < 8) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: 'Invalid password',
           message: 'Password must be at least 8 characters long.'
         });
       }
 
       if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(newPassword)) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: 'Invalid password',
           message: 'Password must contain uppercase, lowercase, and number.'
         });
@@ -475,7 +475,7 @@ const userController = {
       `, [token]);
 
       if (userResult.rows.length === 0) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: 'Invalid or expired token',
           message: 'The password reset link is invalid or has expired.'
         });
@@ -496,9 +496,9 @@ const userController = {
       res.json({ message: 'Password reset successfully' });
     } catch (err) {
       console.error('Error resetting password:', err);
-      res.status(500).json({ 
+      res.status(500).json({
         error: 'Internal server error',
-        message: 'Password reset service temporarily unavailable.' 
+        message: 'Password reset service temporarily unavailable.'
       });
     }
   },
@@ -515,9 +515,9 @@ const userController = {
       res.json(result.rows);
     } catch (err) {
       console.error('Error fetching users:', err);
-      res.status(500).json({ 
+      res.status(500).json({
         error: 'Internal server error',
-        message: 'Unable to fetch users.' 
+        message: 'Unable to fetch users.'
       });
     }
   },
@@ -534,18 +534,18 @@ const userController = {
       `, [id]);
 
       if (result.rows.length === 0) {
-        return res.status(404).json({ 
+        return res.status(404).json({
           error: 'User not found',
-          message: 'User does not exist or has been deleted.' 
+          message: 'User does not exist or has been deleted.'
         });
       }
 
       res.json(result.rows[0]);
     } catch (err) {
       console.error('Error fetching user:', err);
-      res.status(500).json({ 
+      res.status(500).json({
         error: 'Internal server error',
-        message: 'Unable to fetch user information.' 
+        message: 'Unable to fetch user information.'
       });
     }
   },
@@ -568,11 +568,11 @@ const userController = {
           'SELECT id FROM users WHERE email = $1 AND id != $2 AND deleted_at IS NULL',
           [email.toLowerCase().trim(), id]
         );
-        
+
         if (emailCheck.rows.length > 0) {
-          return res.status(400).json({ 
+          return res.status(400).json({
             error: 'Email already exists',
-            message: 'This email is already being used by another account.' 
+            message: 'This email is already being used by another account.'
           });
         }
       }
@@ -594,23 +594,23 @@ const userController = {
         RETURNING id, name, email, avatar, phone, company, location, bio, title, 
                  timezone, role, created_at
       `, [
-        name?.trim(), 
-        email?.toLowerCase().trim(), 
-        avatar, 
-        phone, 
-        company, 
-        location, 
-        bio, 
-        title, 
-        timezone, 
-        role, 
+        name?.trim(),
+        email?.toLowerCase().trim(),
+        avatar,
+        phone,
+        company,
+        location,
+        bio,
+        title,
+        timezone,
+        role,
         id
       ]);
 
       if (result.rows.length === 0) {
-        return res.status(404).json({ 
+        return res.status(404).json({
           error: 'User not found',
-          message: 'User does not exist or has been deleted.' 
+          message: 'User does not exist or has been deleted.'
         });
       }
 
@@ -618,14 +618,14 @@ const userController = {
     } catch (err) {
       console.error('Error updating user:', err);
       if (err.code === '23505') {
-        res.status(400).json({ 
+        res.status(400).json({
           error: 'Email already exists',
-          message: 'This email is already being used by another account.' 
+          message: 'This email is already being used by another account.'
         });
       } else {
-        res.status(500).json({ 
+        res.status(500).json({
           error: 'Internal server error',
-          message: 'User update service temporarily unavailable.' 
+          message: 'User update service temporarily unavailable.'
         });
       }
     }
@@ -644,18 +644,18 @@ const userController = {
       `, [id]);
 
       if (result.rows.length === 0) {
-        return res.status(404).json({ 
+        return res.status(404).json({
           error: 'User not found',
-          message: 'User does not exist or has already been deleted.' 
+          message: 'User does not exist or has already been deleted.'
         });
       }
 
       res.status(204).send();
     } catch (err) {
       console.error('Error deleting user:', err);
-      res.status(500).json({ 
+      res.status(500).json({
         error: 'Internal server error',
-        message: 'User deletion service temporarily unavailable.' 
+        message: 'User deletion service temporarily unavailable.'
       });
     }
   }
