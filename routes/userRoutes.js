@@ -1,8 +1,8 @@
-// routes/userRoutes.js
+// routes/userRoutes.js (UPDATED - Fixed settings routes integration)
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
-const settingsController = require('../controllers/settingsController');
+const settingsController = require('../controllers/settingsController'); // FIXED: Use the corrected controller
 const { authenticate, authorize, refreshToken } = require('../middleware/auth');
 const { validateUser, validateUserUpdate, validateLogin } = require('../middleware/validation');
 
@@ -22,7 +22,7 @@ router.get('/me', authenticate, userController.getCurrentUser);
 router.put('/profile', authenticate, userController.updateProfile);
 router.put('/change-password', authenticate, userController.changePassword);
 
-// Settings routes (all protected)
+// Settings routes (all protected) - FIXED: Now using the corrected controller
 router.get('/settings', authenticate, settingsController.getUserSettings);
 router.put('/settings', authenticate, settingsController.updateUserSettings);
 router.put('/settings/notifications', authenticate, settingsController.updateNotificationSettings);
