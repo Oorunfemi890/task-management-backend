@@ -20,7 +20,10 @@ router.get('/preferences', notificationController.getNotificationPreferences);
 router.put('/preferences', notificationController.updateNotificationPreferences);
 
 // Mark notification as read
-router.put('/:notificationId/read', notificationController.markAsRead);
+router.put('/:notificationId/read', (req, res, next) => {
+  console.log(`[DEBUG] Hitting markAsRead route for ID: ${req.params.notificationId}`);
+  next();
+}, notificationController.markAsRead);
 
 // Mark all notifications as read
 router.put('/read-all', notificationController.markAllAsRead);
