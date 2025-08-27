@@ -13,6 +13,7 @@ const projectRoutes = require("./routes/projectRoutes");
 const teamRoutes = require("./routes/teamRoutes");
 const projectMessageRoutes = require("./routes/projectMessageRoutes"); // New
 const notificationRoutes = require("./routes/notificationRoutes"); // New
+const inviteRoutes = require("./routes/inviteRoutes");
 
 // Import middleware
 const errorHandler = require("./middleware/errorHandler");
@@ -81,11 +82,15 @@ app.use("/api/projects", authenticate, projectRoutes);
 app.use("/api/team", authenticate, teamRoutes);
 app.use("/api/notifications", notificationRoutes); // New notification routes
 app.use("/api/projects/:projectId/messages", projectMessageRoutes); // New project message routes
+app.use("/api/invites", inviteRoutes);
 
 // Auth routes (for backward compatibility and refresh token)
 const authRouter = express.Router();
 authRouter.post("/refresh", require("./middleware/auth").refreshToken);
 app.use("/api/auth", authRouter);
+
+const { apiRateLimit } = require("./middleware/rateLimiter");
+app.use("/api", apiRateLimit);
 
 // Health check endpoint
 app.get("/api/health", async (req, res) => {
