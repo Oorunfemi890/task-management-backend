@@ -1,4 +1,5 @@
 // controllers/inviteController.js
+// ===========================================
 const pool = require('../config/database');
 const crypto = require('crypto');
 const bcrypt = require('bcrypt');
@@ -283,10 +284,10 @@ const inviteController = {
 
         await pool.query('COMMIT');
 
-        // Generate JWT token for immediate login
+        // Generate JWT token for immediate login - FIXED PAYLOAD
         const authToken = jwt.sign(
           { 
-            id: newUser.id, 
+            userId: newUser.id,  // Fixed: use userId instead of id
             email: newUser.email,
             role: invitation.role_name 
           },
@@ -379,10 +380,10 @@ const inviteController = {
       const userId = req.user.id;
 
       // Check if invitation belongs to user or if user is admin
-      const inviteResult = await pool.query(
-        'SELECT * FROM invitations WHERE id = $1 AND (invited_by = $2 OR $3 = ANY(SELECT name FROM user_roles ur JOIN roles r ON ur.role_id = r.id WHERE ur.user_id = $2 AND r.name = \'admin\'))',
-        [id, userId, true]
-      );
+      const inviteResult = await pool.query(`
+        SELECT i.* FROM invitations i 
+        WHERE i.id = $1 AND (i.invited_by = $2 OR $3 = 'admin')
+      `, [id, userId, req.user.role]);
 
       if (inviteResult.rows.length === 0) {
         return res.status(404).json({ error: 'Invitation not found or access denied' });
@@ -410,16 +411,8 @@ const inviteController = {
 
 // Permission helper functions
 async function canInviteUsers(user) {
-  const result = await pool.query(`
-    SELECT r.permissions
-    FROM user_roles ur
-    JOIN roles r ON ur.role_id = r.id
-    WHERE ur.user_id = $1
-  `, [user.id]);
-
-  if (result.rows.length === 0) return false;
-  const permissions = result.rows[0].permissions;
-  return permissions.invites?.create === true;
+  // Simplified permission check
+  return ['admin', 'manager'].includes(user.role);
 }
 
 async function canAssignRole(user, targetRole) {

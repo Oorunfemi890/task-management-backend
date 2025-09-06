@@ -1,18 +1,22 @@
-// routes/inviteRoutes.js
+// ===========================================
 const express = require('express');
 const router = express.Router();
 const inviteController = require('../controllers/inviteController');
-const { requireAuth, requireRole } = require('../middleware/authMiddleware');
+const { authenticate, authorize } = require('../middleware/auth'); // Fixed import
 const { inviteRateLimit } = require('../middleware/rateLimiter');
 
-// Apply authentication to all routes
-router.use(requireAuth);
+// Public routes (no auth required) - MUST BE FIRST
+router.get('/details/:token', inviteController.getInvitationDetails);
+router.post('/accept/:token', inviteController.acceptInvitation);
+
+// Apply authentication to all routes below this point
+router.use(authenticate);
 
 // Send invitations (with rate limiting)
 router.post('/send', inviteRateLimit, inviteController.sendInvitations);
 
 // Generate invite link
-router.post('/generate-link', requireRole(['admin', 'manager']), inviteController.generateInviteLink);
+router.post('/generate-link', authorize('admin', 'manager'), inviteController.generateInviteLink);
 
 // Get available roles for current user
 router.get('/roles', inviteController.getAvailableRoles);
@@ -22,9 +26,5 @@ router.get('/my-invitations', inviteController.getMyInvitations);
 
 // Revoke invitation
 router.delete('/:id', inviteController.revokeInvitation);
-
-// Public routes (no auth required)
-router.get('/details/:token', inviteController.getInvitationDetails);
-router.post('/accept/:token', inviteController.acceptInvitation);
 
 module.exports = router;
